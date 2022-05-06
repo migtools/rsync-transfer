@@ -3,3 +3,4 @@ RUN echo -ne "[centos-8-baseos]\nname = CentOS 8 (RPMs) - BaseOS\nbaseurl = http
 RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf clean all
 COPY sshd_config /etc/ssh/sshd_config
 COPY stunnel.conf /etc/stunnel/stunnel.conf
+USER 65534:65534
