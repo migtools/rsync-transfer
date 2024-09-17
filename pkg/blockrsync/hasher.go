@@ -15,12 +15,18 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"golang.org/x/crypto/blake2b"
+	"github.com/zeebo/blake3"
 )
 
 const (
 	DefaultBlockSize   = int64(64 * 1024)
 	defaultConcurrency = 25
+	blake3HashLength   = 32
+)
+
+var (
+	emptyBlock []byte
+	zeroHash   []byte
 )
 
 type Hasher interface {
@@ -30,6 +36,7 @@ type Hasher interface {
 	SerializeHashes(io.Writer) error
 	DeserializeHashes(io.Reader) (int64, map[int64][]byte, error)
 	BlockSize() int64
+	CompareHashHash(io.ReadWriter) (bool, error)
 }
 
 type OffsetHash struct {
@@ -44,9 +51,13 @@ type FileHasher struct {
 	blockSize int64
 	fileSize  int64
 	log       logr.Logger
+	// Hash of hashes
+	hashHash []byte
 }
 
 func NewFileHasher(blockSize int64, log logr.Logger) Hasher {
+	emptyBlock = make([]byte, blockSize)
+	zeroHash = computeZeroHash()
 	return &FileHasher{
 		blockSize: blockSize,
 		queue:     make(chan int64, defaultConcurrency),
@@ -56,10 +67,17 @@ func NewFileHasher(blockSize int64, log logr.Logger) Hasher {
 	}
 }
 
+func computeZeroHash() []byte {
+	h := blake3.New()
+	h.Write(emptyBlock)
+	return h.Sum(nil)
+}
+
 func (f *FileHasher) HashFile(fileName string) (int64, error) {
 	f.log.V(3).Info("Hashing file", "file", fileName)
 	t := time.Now()
 	defer func() {
+		f.hashHash = f.calculateHashHash()
 		f.log.V(3).Info("Hashing took", "milliseconds", time.Since(t).Milliseconds())
 	}()
 	done := make(chan struct{})
@@ -79,10 +97,7 @@ func (f *FileHasher) HashFile(fileName string) (int64, error) {
 
 	for i := 0; i < count; i++ {
 		wg.Add(1)
-		h, err := blake2b.New512(nil)
-		if err != nil {
-			return 0, err
-		}
+		h := blake3.New()
 		go func(h hash.Hash) {
 			defer wg.Done()
 			osFile, err := os.Open(fileName)
@@ -108,6 +123,14 @@ func (f *FileHasher) HashFile(fileName string) (int64, error) {
 			return f.fileSize, nil
 		}
 	}
+}
+
+func (f *FileHasher) calculateHashHash() []byte {
+	h := blake3.New()
+	for _, v := range f.hashes {
+		h.Write(v)
+	}
+	return h.Sum(nil)
 }
 
 func (f *FileHasher) getFileSize(fileName string) (int64, error) {
@@ -153,17 +176,23 @@ func (f *FileHasher) calculateHash(offset int64, rs io.ReadSeeker, h hash.Hash) 
 		f.log.V(5).Info("Failed to read")
 		return err
 	}
-	n, err = h.Write(buf[:n])
-	if err != nil {
-		f.log.V(5).Info("Failed to write to hash")
-		return err
-	}
-	if n != len(buf) {
-		f.log.V(5).Info("Finished reading file")
+	var hash []byte
+	if bytes.Equal(buf, emptyBlock) {
+		hash = zeroHash
+	} else {
+		n, err = h.Write(buf[:n])
+		if err != nil {
+			f.log.V(5).Info("Failed to write to hash")
+			return err
+		}
+		if n != len(buf) {
+			f.log.V(5).Info("Finished reading file")
+		}
+		hash = h.Sum(nil)
 	}
 	offsetHash := OffsetHash{
 		Offset: offset,
-		Hash:   h.Sum(nil),
+		Hash:   hash,
 	}
 	f.res <- offsetHash
 	return nil
@@ -210,6 +239,7 @@ func (f *FileHasher) SerializeHashes(w io.Writer) error {
 	if err := binary.Write(w, binary.LittleEndian, int64(f.blockSize)); err != nil {
 		return err
 	}
+
 	length := len(f.hashes)
 	f.log.V(5).Info("Number of blocks", "size", length)
 	if err := binary.Write(w, binary.LittleEndian, int64(length)); err != nil {
@@ -225,8 +255,8 @@ func (f *FileHasher) SerializeHashes(w io.Writer) error {
 		if err := binary.Write(w, binary.LittleEndian, k); err != nil {
 			return err
 		}
-		if len(f.hashes[k]) != 64 {
-			return errors.New("invalid hash length")
+		if len(f.hashes[k]) != blake3HashLength {
+			return fmt.Errorf("invalid hash length %d", len(f.hashes[k]))
 		}
 		if n, err := w.Write(f.hashes[k]); err != nil {
 			return err
@@ -248,6 +278,7 @@ func (f *FileHasher) DeserializeHashes(r io.Reader) (int64, map[int64][]byte, er
 	if err := binary.Read(r, binary.LittleEndian, &blockSize); err != nil {
 		return 0, nil, err
 	}
+	f.log.V(5).Info("Block size", "size", blockSize)
 	var length int64
 	if err := binary.Read(r, binary.LittleEndian, &length); err != nil {
 		return 0, nil, err
@@ -263,7 +294,7 @@ func (f *FileHasher) DeserializeHashes(r io.Reader) (int64, map[int64][]byte, er
 		if offset < 0 || offset > length*blockSize {
 			return 0, nil, fmt.Errorf("invalid offset %d", offset)
 		}
-		hash := make([]byte, 64)
+		hash := make([]byte, blake3HashLength)
 		if n, err := io.ReadFull(r, hash); err != nil {
 			return 0, nil, err
 		} else {
@@ -273,6 +304,22 @@ func (f *FileHasher) DeserializeHashes(r io.Reader) (int64, map[int64][]byte, er
 	}
 	f.log.V(3).Info("Number of blocks actually received", "size", len(hashes))
 	return blockSize, hashes, nil
+}
+
+func (f *FileHasher) CompareHashHash(rw io.ReadWriter) (bool, error) {
+	f.log.V(5).Info("Comparing hash of hashes", "hash", base64.StdEncoding.EncodeToString(f.hashHash))
+	if n, err := rw.Write(f.hashHash); err != nil {
+		return false, err
+	} else {
+		f.log.V(5).Info("Wrote hash of hashes", "bytes", n)
+	}
+	hashHash := make([]byte, blake3HashLength)
+	if n, err := io.ReadFull(rw, hashHash); err != nil {
+		return false, err
+	} else {
+		f.log.V(5).Info("Read hash of hashes", "bytes", n, "hash", base64.StdEncoding.EncodeToString(hashHash))
+	}
+	return bytes.Equal(hashHash, f.hashHash), nil
 }
 
 func (f *FileHasher) BlockSize() int64 {
