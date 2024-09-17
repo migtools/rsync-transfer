@@ -1,6 +1,7 @@
 package blockrsync
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -42,19 +43,26 @@ func (b *BlockrsyncClient) ConnectToTarget() error {
 	}
 	b.log.Info("Opened file", "file", b.sourceFile)
 	defer f.Close()
-
+	b.log.V(3).Info("Connecting to target", "address", b.connectionProvider.TargetAddress())
+	conn, err := b.connectionProvider.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	b.log.Info("Connected to target, reading file to hash")
 	size, err := b.hasher.HashFile(b.sourceFile)
 	if err != nil {
 		return err
 	}
 	b.sourceSize = size
 	b.log.V(5).Info("Hashed file", "filename", b.sourceFile, "size", size)
-	conn, err := b.connectionProvider.Connect()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
 	reader := snappy.NewReader(conn)
+	if match, err := b.hasher.CompareHashHash(conn); err != nil {
+		return err
+	} else if match {
+		b.log.Info("No differences found, exiting")
+		return nil
+	}
 	var diff []int64
 	if blockSize, sourceHashes, err := b.hasher.DeserializeHashes(reader); err != nil {
 		return err
@@ -141,12 +149,7 @@ func (b *BlockrsyncClient) writeBlocksToServer(writer io.Writer, offsets []int64
 }
 
 func isEmptyBlock(buf []byte) bool {
-	for _, b := range buf {
-		if b != 0 {
-			return false
-		}
-	}
-	return true
+	return bytes.Equal(buf, emptyBlock)
 }
 
 func int64SortFunc(i, j int64) int {
@@ -160,6 +163,7 @@ func int64SortFunc(i, j int64) int {
 
 type ConnectionProvider interface {
 	Connect() (io.ReadWriteCloser, error)
+	TargetAddress() string
 }
 
 type NetworkConnectionProvider struct {
@@ -177,9 +181,13 @@ func (n *NetworkConnectionProvider) Connect() (io.ReadWriteCloser, error) {
 			if retryCount > 30 {
 				return nil, fmt.Errorf("unable to connect to target after %d retries", retryCount)
 			}
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 10)
 			retryCount++
 		}
 	}
 	return conn, nil
+}
+
+func (n *NetworkConnectionProvider) TargetAddress() string {
+	return n.targetAddress
 }
