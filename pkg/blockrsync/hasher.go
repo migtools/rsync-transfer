@@ -36,7 +36,7 @@ type Hasher interface {
 	SerializeHashes(io.Writer) error
 	DeserializeHashes(io.Reader) (int64, map[int64][]byte, error)
 	BlockSize() int64
-	CompareHashHash(io.ReadWriter) (bool, error)
+	CompareHashOfHash(io.ReadWriter) (bool, error)
 }
 
 type OffsetHash struct {
@@ -306,7 +306,7 @@ func (f *FileHasher) DeserializeHashes(r io.Reader) (int64, map[int64][]byte, er
 	return blockSize, hashes, nil
 }
 
-func (f *FileHasher) CompareHashHash(rw io.ReadWriter) (bool, error) {
+func (f *FileHasher) CompareHashOfHash(rw io.ReadWriter) (bool, error) {
 	f.log.V(5).Info("Comparing hash of hashes", "hash", base64.StdEncoding.EncodeToString(f.hashHash))
 	if n, err := rw.Write(f.hashHash); err != nil {
 		return false, err

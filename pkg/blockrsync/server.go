@@ -67,7 +67,7 @@ func (b *BlockrsyncServer) StartServer() error {
 	defer conn.Close()
 	writer := snappy.NewBufferedWriter(conn)
 	<-readyChan
-	if match, err := b.hasher.CompareHashHash(conn); err != nil {
+	if match, err := b.hasher.CompareHashOfHash(conn); err != nil {
 		return err
 	} else if match {
 		b.log.Info("No differences found, exiting")
