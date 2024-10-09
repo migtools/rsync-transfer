@@ -57,7 +57,7 @@ func (b *BlockrsyncClient) ConnectToTarget() error {
 	b.sourceSize = size
 	b.log.V(5).Info("Hashed file", "filename", b.sourceFile, "size", size)
 	reader := snappy.NewReader(conn)
-	if match, err := b.hasher.CompareHashHash(conn); err != nil {
+	if match, err := b.hasher.CompareHashOfHash(conn); err != nil {
 		return err
 	} else if match {
 		b.log.Info("No differences found, exiting")
