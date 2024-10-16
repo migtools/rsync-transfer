@@ -63,8 +63,8 @@ var _ = Describe("hasher tests", func() {
 		err = hasher.SerializeHashes(w)
 		Expect(err).ToNot(HaveOccurred())
 		hashes := hasher.GetHashes()
-		// 16 for the blocksize and length, 72 for each hash
-		Expect(b.Len()).To(Equal(72*len(hashes) + 16))
+		// 16 for the blocksize and length, 40 for each hash (32 bytes for the hash, 8 for the offset)
+		Expect(b.Len()).To(Equal(40*len(hashes) + 16))
 		r := io.Reader(&b)
 		blockSize, h, err := hasher.DeserializeHashes(r)
 		Expect(err).ToNot(HaveOccurred())
