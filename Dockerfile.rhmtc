@@ -4,8 +4,8 @@ COPY $REMOTE_SOURCES $REMOTE_SOURCES_DIR
 WORKDIR $REMOTE_SOURCES_DIR/rsync-transfer/app
 ENV GOEXPERIMENT strictfipsruntime
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay strictfipsruntime
-RUN source /remote-source/rsync-transfer/cachito.env && GOMODCACHE=/remote-source/rsync-transfer/deps/gomod/pkg/mod GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/blockrsync ./cmd/blockrsync/main.go
-RUN source /remote-source/rsync-transfer/cachito.env && GOMODCACHE=/remote-source/rsync-transfer/deps/gomod/pkg/mod GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/proxy ./cmd/proxy/main.go
+RUN GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/blockrsync ./cmd/blockrsync/main.go
+RUN GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/proxy ./cmd/proxy/main.go
 
 #@follow_tag(registry.redhat.io/ubi8/ubi-minimal)
 FROM registry.redhat.io/ubi8/ubi-minimal:8.10-1255
