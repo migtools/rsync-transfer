@@ -26,6 +26,8 @@ spec:
     value: quay.io/redhat-user-workloads/ocp-art-tenant/rhmtc-rsync-transfer-release-1-8-konflux:{{revision}}
   - name: dockerfile
     value: Dockerfile.rhmtc
+  - name: hermetic
+    value: "true"    
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
