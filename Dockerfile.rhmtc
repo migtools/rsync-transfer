@@ -1,5 +1,5 @@
 #@follow_tag(brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.23)
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23.6-202503041452.g6707acc.el8 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.23 AS builder
 
 WORKDIR /workspace
 COPY go.mod go.mod
