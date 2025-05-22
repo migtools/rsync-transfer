@@ -1,0 +1,12 @@
+---
+image_build_method: imagebuilder
+compose:
+  pulp_repos: true
+remote_sources_version: 2
+remote_sources:
+- name: rsync-transfer
+  remote_source:
+    repo: https://github.com/migtools/rsync-transfer
+    ref: 1d6bc70d88599a7a511c6e37524f9125502a3380
+    pkg_managers:
+      - gomod
