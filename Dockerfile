@@ -1,6 +1,6 @@
 ######################################################################
 # Establish a common builder image for all golang-based images
-FROM docker.io/golang:1.21 as golang-builder
+FROM docker.io/golang:1.24 as golang-builder
 USER root
 WORKDIR /workspace
 # We don't vendor modules. Enforce that behavior
