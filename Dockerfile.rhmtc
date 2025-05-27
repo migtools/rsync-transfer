@@ -14,7 +14,7 @@ RUN GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -install
 
 #@follow_tag(registry.redhat.io/ubi9/ubi-minimal)
 FROM registry.redhat.io/ubi9/ubi-minimal:latest
-RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf -y update && microdnf clean all
+RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf clean all
 
 COPY --from=builder /workspace/_output/blockrsync /blockrsync
 COPY --from=builder /workspace/_output/proxy /proxy
