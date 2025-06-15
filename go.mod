@@ -1,6 +1,8 @@
 module github.com/awels/blockrsync
 
-go 1.21.6
+go 1.23.0
+
+toolchain go1.23.9
 
 require (
 	github.com/go-logr/logr v1.4.1
@@ -26,7 +28,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
