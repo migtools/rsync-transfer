@@ -1,0 +1,10 @@
+packages:
+- nmap
+- openssh-server
+- rsync
+- stunnel
+arches:
+- x86_64
+contentOrigin:
+  repofiles:
+  - ./redhat.repo
