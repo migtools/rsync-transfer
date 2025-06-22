@@ -7,7 +7,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/onsi/ginkgo/v2 v2.14.0
 	github.com/onsi/gomega v1.30.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/zeebo/blake3 v0.2.4
 	go.uber.org/zap v1.27.0
 	sigs.k8s.io/controller-runtime v0.17.3
