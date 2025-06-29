@@ -1,6 +1,8 @@
 module github.com/awels/blockrsync
 
-go 1.21.6
+go 1.23
+
+toolchain go1.23.9
 
 require (
 	github.com/go-logr/logr v1.4.1
@@ -35,6 +37,6 @@ require (
 	k8s.io/apimachinery v0.29.2 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
