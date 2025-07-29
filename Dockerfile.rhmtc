@@ -16,7 +16,6 @@ RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf clean all
 
 COPY --from=builder /workspace/_output/blockrsync /blockrsync
 COPY --from=builder /workspace/_output/proxy /proxy
-
 COPY sshd_config /etc/ssh/sshd_config
 COPY stunnel.conf /etc/stunnel/stunnel.conf
 COPY LICENSE /licenses/
