@@ -11,8 +11,8 @@ ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper excl
 RUN GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/blockrsync ./cmd/blockrsync/main.go
 RUN GO111MODULE=auto CGO_ENABLED=1 GOOS=linux go build -mod=readonly -v -installsuffix "static" -tags "$BUILDTAGS" -o _output/proxy ./cmd/proxy/main.go
 
-FROM registry.redhat.io/ubi8/ubi-minimal:latest
-RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf clean all
+FROM registry.redhat.io/ubi8/ubi:latest
+RUN dnf -y install openssh-server stunnel rsync nmap && dnf clean all
 
 COPY --from=builder /workspace/_output/blockrsync /blockrsync
 COPY --from=builder /workspace/_output/proxy /proxy
