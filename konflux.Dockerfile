@@ -22,3 +22,10 @@ COPY LICENSE /licenses/
 
 USER 65534:65534
 WORKDIR /
+
+LABEL \
+        "io.k8s.description"="Migration Toolkit for Containers Rsync Transfer" \
+        "io.k8s.display-name"="Migration Toolkit for Containers" \
+        "io.openshift.tags"="migration" \
+        "summary"="Migration Toolkit for Containers Rsync Transfer" \
+        "io.openshift.maintainer.project"="MIG"
