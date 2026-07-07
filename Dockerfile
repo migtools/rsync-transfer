@@ -32,6 +32,7 @@ RUN go build -o proxy ./cmd/proxy/main.go
 # Final container
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 RUN microdnf update -y
+RUN microdnf upgrade -y python3-urllib3 && microdnf clean all
 RUN microdnf -y install openssh-server stunnel rsync nmap && microdnf clean all
 COPY sshd_config /etc/ssh/sshd_config
 COPY stunnel.conf /etc/stunnel/stunnel.conf
