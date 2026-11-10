@@ -7,6 +7,7 @@ import (
 	_ "github.com/rclone/rclone/backend/local"
 	_ "github.com/rclone/rclone/backend/s3"
 	"github.com/rclone/rclone/cmd"
+	_ "github.com/rclone/rclone/cmd/mkdir"
 	_ "github.com/rclone/rclone/cmd/sync"
 )
 
