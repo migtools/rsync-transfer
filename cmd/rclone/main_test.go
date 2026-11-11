@@ -19,18 +19,24 @@ func commandRegistered(name string) bool {
 	return false
 }
 
-func TestMkdirCommandRegistered(t *testing.T) {
-	if !commandRegistered("mkdir") {
-		t.Fatal("mkdir command is not registered; ensure cmd/rclone/main.go blank-imports github.com/rclone/rclone/cmd/mkdir")
+// TestCommandsRegistered verifies that each subcommand the custom binary relies
+// on is compiled in. Every command self-registers via init() when its package is
+// blank-imported in main.go, so a missing blank import silently drops the command
+// from the binary; this test guards against that. "mkdir" is the command added by
+// this change (empty-PVC indirect transfers need it to create the remote root
+// marker); "sync" is kept as a cheap regression guard for the pre-existing upload
+// path. Add new commands to the list as they are wired up.
+func TestCommandsRegistered(t *testing.T) {
+	for _, name := range []string{"mkdir", "sync"} {
+		t.Run(name, func(t *testing.T) {
+			if !commandRegistered(name) {
+				t.Fatalf("%s command is not registered; ensure cmd/rclone/main.go blank-imports github.com/rclone/rclone/cmd/%s", name, name)
+			}
+		})
 	}
 }
 
-func TestSyncCommandRegistered(t *testing.T) {
-	if !commandRegistered("sync") {
-		t.Fatal("sync command is not registered; ensure cmd/rclone/main.go blank-imports github.com/rclone/rclone/cmd/sync")
-	}
-}
-
+// TestAzureBlobBackendRegistered verifies the Azure Blob backend is compiled in.
 func TestAzureBlobBackendRegistered(t *testing.T) {
 	backend, err := fs.Find("azureblob")
 	if err != nil {
@@ -41,6 +47,8 @@ func TestAzureBlobBackendRegistered(t *testing.T) {
 	}
 }
 
+// TestGoogleCloudStorageBackendRegistered verifies the Google Cloud Storage
+// backend is compiled in and exposes the expected name and prefix.
 func TestGoogleCloudStorageBackendRegistered(t *testing.T) {
 	backend, err := fs.Find("googlecloudstorage")
 	if err != nil {
