@@ -22,10 +22,8 @@ func commandRegistered(name string) bool {
 // TestCommandsRegistered verifies that each subcommand the custom binary relies
 // on is compiled in. Every command self-registers via init() when its package is
 // blank-imported in main.go, so a missing blank import silently drops the command
-// from the binary; this test guards against that. "mkdir" is the command added by
-// this change (empty-PVC indirect transfers need it to create the remote root
-// marker); "sync" is kept as a cheap regression guard for the pre-existing upload
-// path. Add new commands to the list as they are wired up.
+// from the binary; this test guards against that.
+// Add new commands to the list as they are wired up.
 func TestCommandsRegistered(t *testing.T) {
 	for _, name := range []string{"mkdir", "sync"} {
 		t.Run(name, func(t *testing.T) {
