@@ -1,17 +1,16 @@
 name: Build and push image
 
-# Rebuilds quay.io/konveyor/rsync-transfer:latest whenever new code lands on
-# master, so the published image never drifts out of date from the source. Can
-# also be run by hand from the Actions tab (workflow_dispatch).
+# Rebuilds and pushes the image on master (:latest) and release-* branches
+# (tagged after the branch, e.g. release-1.0). Can also be run by hand.
 #
-# Requires two repo secrets, set from a Quay robot account with write access to
-# konveyor/rsync-transfer:
-#   QUAY_USERNAME  - the robot account's name
-#   QUAY_TOKEN     - the robot account's token
+# Requires repo secrets QUAY_USERNAME and QUAY_TOKEN from a Quay robot account
+# with write access to konveyor/rsync-transfer.
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - release-*
   workflow_dispatch:
 
 jobs:
@@ -28,10 +27,19 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_TOKEN }}
 
-      - name: Build and push :latest
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: quay.io/konveyor/rsync-transfer:latest
+          tags: quay.io/konveyor/rsync-transfer:${{ steps.tag.outputs.tag }}
