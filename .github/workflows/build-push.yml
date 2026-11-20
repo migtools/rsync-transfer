@@ -1,0 +1,72 @@
+name: Build and push image
+
+# Rebuilds and pushes the image on master (:latest) and release-* branches
+# (tagged after the branch, e.g. release-1.0). Can also be run by hand.
+#
+# Requires repo secrets QUAY_USERNAME and QUAY_TOKEN from a Quay robot account
+# with write access to konveyor/rsync-transfer.
+
+on:
+  push:
+    branches:
+      - master
+      - release-*
+    # Only rebuild when something that affects the image changes.
+    paths:
+      - 'Dockerfile'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'sshd_config'
+      - 'stunnel.conf'
+      - '.github/workflows/build-push.yml'
+  workflow_dispatch:
+
+# Only one publishing run per branch at a time; a newer push cancels an older
+# in-progress run so it can't publish an image that is already stale.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          ref="${GITHUB_REF_NAME}"
+          if [ "$ref" = "master" ]; then
+            tag="latest"
+          elif printf '%s' "$ref" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$'; then
+            # Already a valid Docker tag (e.g. release-1.0) — use as-is.
+            tag="$ref"
+          else
+            # Ref name is not a valid Docker tag (e.g. contains '/').
+            # Replace illegal characters, then append a hash of the original
+            # name so distinct refs can't silently collide on one tag.
+            hash=$(printf '%s' "$ref" | sha256sum | cut -c1-12)
+            safe=$(printf '%s' "$ref" | tr -c 'A-Za-z0-9._-' '-' | sed -E 's/^[.-]+//')
+            safe=$(printf '%.100s' "$safe")
+            tag="${safe}-${hash}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: quay.io/konveyor/rsync-transfer:${{ steps.tag.outputs.tag }}
